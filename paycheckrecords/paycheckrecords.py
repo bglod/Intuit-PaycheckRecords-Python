@@ -97,8 +97,8 @@ class paycheckrecords:
             paystubHtml = None
             rowCols = payrows[index].findAll('td')
             rowDate = rowCols[DateIndex].a.string.strip()
-            rowTotalPay = float(rowCols[TotalIndex].string.strip().strip("$"))
-            rowNetPay = float(rowCols[NetIndex].string.strip().strip("$"))
+            rowTotalPay = float(rowCols[TotalIndex].string.strip().strip("$").translate(dict.fromkeys(map(ord,','),None)))
+            rowNetPay = float(rowCols[NetIndex].string.strip().strip("$").translate(dict.fromkeys(map(ord,','),None)))
             tmpDateTime = datetime.strptime(rowDate, '%m/%d/%Y')
             if GetHtml:
                 paystubResponse = self._br.open(rowCols[DateIndex].a['href'])
