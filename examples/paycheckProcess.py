@@ -150,6 +150,23 @@ def savePayStubs( stubs, redact=False ):
             out.write(blackOut(stub.HTML))
             out.close()
 
+def yesno( x ):
+    while True:
+        resp = raw_input(x)
+        if( resp.lower() == 'y' ):
+            return True
+        elif( resp.lower() == 'n' ):
+            return False
+        else:
+            print "  Invalid response."
+
+def get_date( x, fmt='%m/%d/%Y' ):
+    while True:
+        try:
+            resp = raw_input(x) or datetime.today().strftime(fmt)
+            return datetime.strptime(resp, fmt)
+        except ValueError:
+            print "  Invalid date or date format provided."
 
 def main():
 
@@ -158,47 +175,35 @@ def main():
     print "Optionally save off the pay stubs and redacted pay stubs."
     print ""
 
-    try:
-        startdate = datetime.strptime(raw_input("Start date (MM/DD/YYYY): "), '%m/%d/%Y')
-        enddate   = datetime.strptime(raw_input("End   date (MM/DD/YYYY): "), '%m/%d/%Y')
-    except ValueError:
-        raise ValueError("Invalid date format.")
+    while True:
+        startdate = get_date("Start date (MM/DD/YYYY): ", '%m/%d/%Y')
+        enddate   = get_date("End date (MM/DD/YYYY): ", '%m/%d/%Y')
+        if( startdate <= enddate ):
+            break
+        else:
+            print "  Invalid date range. Start date must be before or equal to end date."
 
-
-    savestubs = raw_input("Save pay stubs? [Y/n] ")
-    if( savestubs.lower() == 'y' ):
-        savestubs = True
-    elif( savestubs.lower() == 'n' ):
-        savestubs = False
-    else:
-        print "Invalid response. Aborting."
-        return -1
-
-    if savestubs:
-        saveredacted = raw_input("Save redacted pay stubs? [Y/n] ")
-        if( saveredacted.lower() == 'y' ):
+    savestubs = yesno("Save pay stubs? [Y/n] ")
+    if( savestubs ):
+        saveredacted = yesno("Save redacted pay stubs? [Y/n] ")
+        if( saveredacted ):
             # Deleting the sensitive information is an exercise for the reader ...
             print "  WARNING: redacted pay stubs are intended to be printed. Although"
             print "           it is blacked out, the sensitive information is still"
             print "           present in the document."
-            saveredacted = raw_input("  Do you acknowledge and accept the above warning? [Y/n] ")
-            if( saveredacted.lower() == 'y' ):
-                saveredacted = True
-            elif( saveredacted.lower() == 'n' ):
-                saveredacted = False
-            else:
-                print "Invalid response. Aborting."
-                return -1
-        elif( saveredacted.lower() == 'n' ):
-            saveredacted = False
-        else:
-            print "Invalid response. Aborting."
-            return -1
+            saveredacted = yesno("  Do you acknowledge and accept the above warning? [Y/n] ")
 
     print "PaycheckRecords.com Credentials:"
 
-    username = raw_input("  Username: ")
-    password = getpass("  Password: ")
+    while True:
+        username = raw_input("  Username: ")
+        if( username != "" ):
+            break
+
+    while True:
+        password = getpass("  Password: ")
+        if( password != "" ):
+            break
 
     print ""
 
