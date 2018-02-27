@@ -69,10 +69,39 @@ class paycheckrecords:
         self._browserSem.release()
         return ret
 
+    def _getPayStubDetails(self, html):
+        soup    = BeautifulSoup(html, "lxml")
+        details = soup.find_all("table", { "class" : [ "detailsWages", "detailsPart" ] })
+        rv      = []
 
+        # Paystub details seem to contain 4 elements, each consisting of one or more rows:
+        #  [0] Pay        (e.g. salary, bonus, ... )
+        #  [1] Deductions (e.g. 401k, healthcare, ... )
+        #  [2] Taxes      (e.g. federal, state, SS, medicare, ... )
+        #  [3] Summary
+        for d in range( 0, len(details) ):
+            for r in details[d].find_all('tr')[1:]:
+                tds = r.find_all('td')
+                if( d == 0 ): # Pay field has extra elements: hours and rate
+                    rv.append( { 'name'    : tds[0].text.strip(),
+                                 'hours'   : float(tds[1].text.strip() or 0.0),
+                                 'rate'    : float(tds[2].text.strip() or 0.0),
+                                 'current' : float(tds[3].text.strip()),
+                                 'ytd'     : float(tds[4].text.strip()) } )
+                else:
+                    rv.append( { 'name'    : tds[0].text.strip(),
+                                 'current' : float(tds[1].text.strip()),
+                                 'ytd'     : float(tds[2].text.strip()),
+                                 # Make post-processing easier
+                                 'hours'   : float(0.0),
+                                 'rate'    : float(0.0) } )
+
+        # List of dictionaries containing name/hours/rate/current/ytd
+        # information for each line-item of a paystub
+        return rv
 
     def _getPaystubsFromTable(self, html, sequence, GetHtml = True):
-        soup = BeautifulSoup(html)
+        soup = BeautifulSoup(html, "lxml")
         PayStubTable = soup.find("table", { "class" : "report" })
         payrows = PayStubTable.findAll('tr')
         headerCols = payrows[0].findAll('td')
@@ -103,8 +132,9 @@ class paycheckrecords:
             if GetHtml:
                 paystubResponse = self._br.open(rowCols[DateIndex].a['href'])
                 paystubHtml = paystubResponse.read()
+                stubDetails = self._getPayStubDetails(paystubHtml)
                 self._br.back()
-            tmpPayStub = paystub(tmpDateTime, rowTotalPay, rowNetPay, paystubHtml)
+            tmpPayStub = paystub(tmpDateTime, rowTotalPay, rowNetPay, stubDetails, paystubHtml)
             ret.append(tmpPayStub)
 
         return ret

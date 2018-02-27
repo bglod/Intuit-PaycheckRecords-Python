@@ -1,6 +1,6 @@
 import datetime
 class paystub:
-    def __init__(self, payDate, TotalPay, NetPay, html = None):
+    def __init__(self, payDate, TotalPay, NetPay, stubDetails = None, html = None):
         if type(payDate) is not datetime and type(payDate) is not datetime.datetime:
             raise ValueError("payDate is not a datetime object")
 
@@ -12,4 +12,5 @@ class paystub:
         self.PayDate = payDate
         self.TotalPay = TotalPay
         self.NetPay = NetPay
+        self.StubDetails = stubDetails
         self.HTML = html

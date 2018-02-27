@@ -1,9 +1,11 @@
+#!/usr/bin/env python2
+
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from bs4 import BeautifulSoup
 import re
 from getpass import getpass
-
+import os
 import sys
 sys.path.append("../")
 from paycheckrecords import *
@@ -28,7 +30,7 @@ def checkRowForAll(row):
     return False
 
 def blackOut(html):
-    soup = BeautifulSoup(html)
+    soup = BeautifulSoup(html, "lxml")
 
     #blackout net pay
     tmp = soup.findAll('u')
@@ -69,48 +71,148 @@ def blackOut(html):
 
     return str(soup.prettify(formatter=None))
 
-def main():
+def printSimpleSummary( stubs ):
+    gross    = 0.0
+    totalnet = 0.0
 
-    _day = int(input("Day:"))
-    username = raw_input("Username:")
-    password = getpass("Password:")
+    print ""
+    print "QUICK SUMMARY:"
+    print ""
 
-    paycheckinst = paycheckrecords(username, password)
-    try:
+    print "----------------------------------------------"
+    print '{: <20} {: >12} {: >12}'.format( "Date",
+                                            "Total Pay",
+                                            "Net Pay" )
+    print "----------------------------------------------"
+    for stub in stubs:
+        print '{: <20} {: >12} {: >12}'.format( stub.PayDate.strftime("%Y-%m-%d"),
+                                                stub.TotalPay,
+                                                stub.NetPay )
+        gross    = gross    + stub.TotalPay
+        totalnet = totalnet + stub.NetPay
 
-        now = date.today()
+    print "----------------------------------------------"
+    print '{: <20} {: >12} {: >12}'.format( "",
+                                            str(gross),
+                                            str(totalnet) )
+    print ""
 
-        if now.day > _day:
-            startdate = now.replace(day=_day+1)
-            enddate = startdate + timedelta(days=32)
-            enddate = enddate.replace(day = _day)
+def printDetailedSummary( stubs ):
+    summary = {}
+    for stub in stubs:
+        for f in stub.StubDetails:
+            if f['name'] in summary:
+                summary[f['name']]['hours']   += f['hours']
+                summary[f['name']]['rate']    += f['rate']
+                summary[f['name']]['current'] += f['current']
+            else:
+                summary[f['name']] = { 'hours'   : f['hours'],
+                                       'rate'    : f['rate'],
+                                       'current' : f['current'] }
 
-        else:
+    print ""
+    print "DETAILED TOTALS:"
+    print ""
+
+    print "-----------------------------------------------------------"
+    print '{: <20} {: >12} {: >12} {: >12}'.format( "Field",
+                                                    "Total Hours",
+                                                    "Total Rate",
+                                                    "Total" )
+    print "-----------------------------------------------------------"
+    for s in summary:
+        print '{: <20} {: >12.2f} {: >12.2f} {: >12.2f}'.format( s,
+                                                                 summary[s]['hours'],
+                                                                 summary[s]['rate'],
+                                                                 summary[s]['current'] )
+    print ""
 
 
-            enddate = now.replace(day=_day)
-            tmpdate = now.replace(day=1) - timedelta(days=1)
-            startdate = tmpdate.replace(day=_day+1)
+def savePayStubs( stubs, redact=False ):
+    for stub in stubs:
+        filename = "paystub-" + stub.PayDate.strftime("%Y-%m-%d")
 
+        if os.path.isfile(filename + ".html"):
+            i = 1
+            while os.path.isfile(filename + "_" + str(i) + ".html"):
+                i += 1
+                if i == 100:
+                    print "There seem to be a lot of duplicate files? Aborting."
+                    return -1
+            filename += '_' + str(i)
 
+        out = open(filename + ".html", "w")
+        out.write(stub.HTML)
+        out.close()
 
-        ret = paycheckinst.getPayStubsInRange(startdate, enddate)
-        gross = 0.0
-        for stub in ret:
-            print "Date: ", stub.PayDate
-            print "Total Pay: ", stub.TotalPay
-            print "Net Pay: ", stub.NetPay
-            print ""
-            gross = gross + stub.TotalPay
-            filename = "paystub " + stub.PayDate.strftime("%m-%d-%Y")
-            out = open(filename + ".html", "w")
-            out.write(stub.HTML)
-            out.close()
-
-            out = open(filename + "(blacked out).html", "w")
+        if redact:
+            out = open(filename + "_redacted.html", "w")
             out.write(blackOut(stub.HTML))
             out.close()
-        print "Gross: " + str(gross)
+
+
+def main():
+
+    print ""
+    print "Print a summary of all pay stubs between the given dates."
+    print "Optionally save off the pay stubs and redacted pay stubs."
+    print ""
+
+    try:
+        startdate = datetime.strptime(raw_input("Start date (MM/DD/YYYY): "), '%m/%d/%Y')
+        enddate   = datetime.strptime(raw_input("End   date (MM/DD/YYYY): "), '%m/%d/%Y')
+    except ValueError:
+        raise ValueError("Invalid date format.")
+
+
+    savestubs = raw_input("Save pay stubs? [Y/n] ")
+    if( savestubs.lower() == 'y' ):
+        savestubs = True
+    elif( savestubs.lower() == 'n' ):
+        savestubs = False
+    else:
+        print "Invalid response. Aborting."
+        return -1
+
+    if savestubs:
+        saveredacted = raw_input("Save redacted pay stubs? [Y/n] ")
+        if( saveredacted.lower() == 'y' ):
+            # Deleting the sensitive information is an exercise for the reader ...
+            print "  WARNING: redacted pay stubs are intended to be printed. Although"
+            print "           it is blacked out, the sensitive information is still"
+            print "           present in the document."
+            saveredacted = raw_input("  Do you acknowledge and accept the above warning? [Y/n] ")
+            if( saveredacted.lower() == 'y' ):
+                saveredacted = True
+            elif( saveredacted.lower() == 'n' ):
+                saveredacted = False
+            else:
+                print "Invalid response. Aborting."
+                return -1
+        elif( saveredacted.lower() == 'n' ):
+            saveredacted = False
+        else:
+            print "Invalid response. Aborting."
+            return -1
+
+    print "PaycheckRecords.com Credentials:"
+
+    username = raw_input("  Username: ")
+    password = getpass("  Password: ")
+
+    print ""
+
+    paycheckinst = paycheckrecords(username, password)
+
+    try:
+        stubs = paycheckinst.getPayStubsInRange(startdate, enddate)
+
+        printSimpleSummary( stubs )
+        printDetailedSummary( stubs )
+
+        if savestubs:
+            savePayStubs( stubs, saveredacted )
+
     finally:
         paycheckinst.close()
 
