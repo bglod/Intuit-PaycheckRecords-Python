@@ -1,2 +1,2 @@
-import paystub
-from paycheckrecords import *
+from . import paystub
+from .paycheckrecords import *

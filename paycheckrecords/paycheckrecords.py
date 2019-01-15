@@ -1,14 +1,14 @@
 from getpass import getpass
 import threading
-import mechanize
+import mechanicalsoup
 from bs4 import BeautifulSoup
-from paystub import paystub
+from .paystub import paystub
 from datetime import datetime
 from datetime import timedelta
 
 
 class paycheckrecords:
-    _br = mechanize.Browser()
+    _br = mechanicalsoup.StatefulBrowser()
     _browserSem = threading.Semaphore()
     _thread = None
     _stop = False
@@ -16,14 +16,14 @@ class paycheckrecords:
     _threadSleep = threading.Event()
 
     def __init__(self, username, password):
-        self._br.set_handle_robots(False)
+        #self._br.set_handle_robots(False)
         self._br.open("https://www.paycheckrecords.com")
-        self._br.select_form(name="Login_Form")
+        self._br.select_form()
 
-        self._br.form["userStrId"] = username
-        self._br.form["password"] = password
+        self._br["userStrId"] = username
+        self._br["password"] = password
 
-        self._br.submit()
+        self._br.submit_selected()
 
         self._thread = threading.Thread(target=self.preventTimeOut)
         self._thread.start()
@@ -32,7 +32,7 @@ class paycheckrecords:
         while not self._stop:
             self._browserSem.acquire()
 #            print "aquired lock"
-            url = self._br.geturl()
+            url = self._br.get_url()
             #print "url = ", url
             self._br.open(url)
 #            print "refreshed"
@@ -46,10 +46,10 @@ class paycheckrecords:
 
     def getLatestPayStub(self):
         self._browserSem.acquire()
-        originalurl = self._br.geturl()
+        originalurl = self._br.get_url()
         paystubResponse = self._br.open("https://www.paycheckrecords.com/in/paychecks.jsp")
 
-        ret = self._getPaystubsFromTable(paystubResponse.read(), range(1, 2))
+        ret = self._getPaystubsFromTable(paystubResponse.read(), list(range(1, 2)))
 
         self._br.open(originalurl)
         self._browserSem.release()
@@ -57,13 +57,13 @@ class paycheckrecords:
 
     def getPayStubsInRange(self, startDate, endDate, sequence = 0):
         self._browserSem.acquire()
-        originalurl = self._br.geturl()
+        originalurl = self._br.get_url()
         paystubResponse = self._br.open("https://www.paycheckrecords.com/in/paychecks.jsp")
-        self._br.select_form(name="dateSelect")
-        self._br.form["startDate"] = startDate.strftime("%m/%d/%Y")
-        self._br.form["endDate"] = endDate.strftime("%m/%d/%Y")
-        paystubResponse = self._br.submit()
-        ret = self._getPaystubsFromTable(paystubResponse.read(),sequence)
+        self._br.select_form("#dateSelect")
+        self._br["startDate"] = startDate.strftime("%m/%d/%Y")
+        self._br["endDate"] = endDate.strftime("%m/%d/%Y")
+        paystubResponse = self._br.submit_selected()
+        ret = self._getPaystubsFromTable(paystubResponse.text,sequence)
 
         self._br.open(originalurl)
         self._browserSem.release()
@@ -113,27 +113,27 @@ class paycheckrecords:
 
         for col in headerCols:
             colName = col.string
-            if colName == u'Pay Date' and DateIndex == -1:
+            if colName == 'Pay Date' and DateIndex == -1:
                 DateIndex = i
-            elif colName == u'Total Pay' and TotalIndex == -1:
+            elif colName == 'Total Pay' and TotalIndex == -1:
                 TotalIndex = i
-            elif colName == u'Net Pay' and NetIndex == -1:
+            elif colName == 'Net Pay' and NetIndex == -1:
                 NetIndex = i
             i = i + 1
         if sequence == 0:
-            sequence = range(1, len(payrows))
+            sequence = list(range(1, len(payrows)))
         for index in sequence:
             paystubHtml = None
             rowCols = payrows[index].findAll('td')
             rowDate = rowCols[DateIndex].a.string.strip()
-            rowTotalPay = float(rowCols[TotalIndex].string.strip().strip("$").translate(dict.fromkeys(map(ord,','),None)))
-            rowNetPay = float(rowCols[NetIndex].string.strip().strip("$").translate(dict.fromkeys(map(ord,','),None)))
+            rowTotalPay = float(rowCols[TotalIndex].string.strip().strip("$").translate(dict.fromkeys(list(map(ord,',')),None)))
+            rowNetPay = float(rowCols[NetIndex].string.strip().strip("$").translate(dict.fromkeys(list(map(ord,',')),None)))
             tmpDateTime = datetime.strptime(rowDate, '%m/%d/%Y')
             if GetHtml:
-                paystubResponse = self._br.open(rowCols[DateIndex].a['href'])
-                paystubHtml = paystubResponse.read()
+                paystubResponse = self._br.open_relative(rowCols[DateIndex].a['href'])
+                paystubHtml = paystubResponse.text
                 stubDetails = self._getPayStubDetails(paystubHtml)
-                self._br.back()
+                #self._br.back()
             tmpPayStub = paystub(tmpDateTime, rowTotalPay, rowNetPay, stubDetails, paystubHtml)
             ret.append(tmpPayStub)
 

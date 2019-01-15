@@ -75,27 +75,27 @@ def printSimpleSummary( stubs ):
     gross    = 0.0
     totalnet = 0.0
 
-    print ""
-    print "QUICK SUMMARY:"
-    print ""
+    print("")
+    print("QUICK SUMMARY:")
+    print("")
 
-    print "----------------------------------------------"
-    print '{: <20} {: >12} {: >12}'.format( "Date",
+    print("----------------------------------------------")
+    print(('{: <20} {: >12} {: >12}'.format( "Date",
                                             "Total Pay",
-                                            "Net Pay" )
-    print "----------------------------------------------"
+                                            "Net Pay" )))
+    print("----------------------------------------------")
     for stub in stubs:
-        print '{: <20} {: >12} {: >12}'.format( stub.PayDate.strftime("%Y-%m-%d"),
+        print(('{: <20} {: >12} {: >12}'.format( stub.PayDate.strftime("%Y-%m-%d"),
                                                 stub.TotalPay,
-                                                stub.NetPay )
+                                                stub.NetPay )))
         gross    = gross    + stub.TotalPay
         totalnet = totalnet + stub.NetPay
 
-    print "----------------------------------------------"
-    print '{: <20} {: >12} {: >12}'.format( "",
+    print("----------------------------------------------")
+    print(('{: <20} {: >12} {: >12}'.format( "",
                                             str(gross),
-                                            str(totalnet) )
-    print ""
+                                            str(totalnet) )))
+    print("")
 
 def printDetailedSummary( stubs ):
     summary = {}
@@ -110,22 +110,22 @@ def printDetailedSummary( stubs ):
                                        'rate'    : f['rate'],
                                        'current' : f['current'] }
 
-    print ""
-    print "DETAILED TOTALS:"
-    print ""
+    print("")
+    print("DETAILED TOTALS:")
+    print("")
 
-    print "-----------------------------------------------------------"
-    print '{: <20} {: >12} {: >12} {: >12}'.format( "Field",
+    print("-----------------------------------------------------------")
+    print(('{: <20} {: >12} {: >12} {: >12}'.format( "Field",
                                                     "Total Hours",
                                                     "Total Rate",
-                                                    "Total" )
-    print "-----------------------------------------------------------"
+                                                    "Total" )))
+    print("-----------------------------------------------------------")
     for s in summary:
-        print '{: <20} {: >12.2f} {: >12.2f} {: >12.2f}'.format( s,
+        print(('{: <20} {: >12.2f} {: >12.2f} {: >12.2f}'.format( s,
                                                                  summary[s]['hours'],
                                                                  summary[s]['rate'],
-                                                                 summary[s]['current'] )
-    print ""
+                                                                 summary[s]['current'] )))
+    print("")
 
 
 def savePayStubs( stubs, redact=False ):
@@ -137,7 +137,7 @@ def savePayStubs( stubs, redact=False ):
             while os.path.isfile(filename + "_" + str(i) + ".html"):
                 i += 1
                 if i == 100:
-                    print "There seem to be a lot of duplicate files? Aborting."
+                    print("There seem to be a lot of duplicate files? Aborting.")
                     return -1
             filename += '_' + str(i)
 
@@ -152,28 +152,29 @@ def savePayStubs( stubs, redact=False ):
 
 def yesno( x ):
     while True:
-        resp = raw_input(x)
+        resp = input(x)
         if( resp.lower() == 'y' ):
             return True
         elif( resp.lower() == 'n' ):
             return False
         else:
-            print "  Invalid response."
+            print("  Invalid response.")
 
 def get_date( x, fmt='%m/%d/%Y' ):
     while True:
         try:
-            resp = raw_input(x) or datetime.today().strftime(fmt)
+            #resp = eval(input(x)) or datetime.today().strftime(fmt)
+            resp = input(x) or datetime.today().strftime(fmt)
             return datetime.strptime(resp, fmt)
         except ValueError:
-            print "  Invalid date or date format provided."
+            print("  Invalid date or date format provided.")
 
 def main():
 
-    print ""
-    print "Print a summary of all pay stubs between the given dates."
-    print "Optionally save off the pay stubs and redacted pay stubs."
-    print ""
+    print("")
+    print("Print a summary of all pay stubs between the given dates.")
+    print("Optionally save off the pay stubs and redacted pay stubs.")
+    print("")
 
     while True:
         startdate = get_date("Start date (MM/DD/YYYY): ", '%m/%d/%Y')
@@ -181,22 +182,22 @@ def main():
         if( startdate <= enddate ):
             break
         else:
-            print "  Invalid date range. Start date must be before or equal to end date."
+            print("  Invalid date range. Start date must be before or equal to end date.")
 
     savestubs = yesno("Save pay stubs? [Y/n] ")
     if( savestubs ):
         saveredacted = yesno("Save redacted pay stubs? [Y/n] ")
         if( saveredacted ):
             # Deleting the sensitive information is an exercise for the reader ...
-            print "  WARNING: redacted pay stubs are intended to be printed. Although"
-            print "           it is blacked out, the sensitive information is still"
-            print "           present in the document."
+            print("  WARNING: redacted pay stubs are intended to be printed. Although")
+            print("           it is blacked out, the sensitive information is still")
+            print("           present in the document.")
             saveredacted = yesno("  Do you acknowledge and accept the above warning? [Y/n] ")
 
-    print "PaycheckRecords.com Credentials:"
+    print("PaycheckRecords.com Credentials:")
 
     while True:
-        username = raw_input("  Username: ")
+        username = input("  Username: ")
         if( username != "" ):
             break
 
@@ -205,7 +206,7 @@ def main():
         if( password != "" ):
             break
 
-    print ""
+    print("")
 
     paycheckinst = paycheckrecords(username, password)
 
