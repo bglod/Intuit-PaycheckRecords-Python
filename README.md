@@ -12,3 +12,11 @@ Directories
 * examples/ -- contains examples that demo the api's abilities
 	*paycheckProcess.py retrieves your pay stubs between a set period of the month, displays a summary of each paystub, saves 2 copies of the paystubs (original and one sensitive information blacked out) and sums the gross income
 * paycheckrecords -- contains the actual api
+
+Dependencies
+============
+* python2
+* python2-dateutil
+* python2-beautifulsoup4
+* python2-mechanize
+* python2-lxml
