@@ -1,4 +1,12 @@
-#!/usr/bin/env python2
+###############################################################################
+# Python3
+#
+# Dependencies:
+#   - dateutil
+#   - beautifulsoup4
+#   - mechanicalsoup
+#   - lxml
+###############################################################################
 
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta

@@ -15,8 +15,8 @@ Directories
 
 Dependencies
 ============
-* python2
-* python2-dateutil
-* python2-beautifulsoup4
-* python2-mechanize
-* python2-lxml
+* python3
+* python-dateutil
+* python-beautifulsoup4
+* python-mechanicalsoup
+* python-lxml
